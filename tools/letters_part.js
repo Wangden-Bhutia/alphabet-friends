@@ -364,11 +364,11 @@ function traceGlyph(strokes,opts,done){
     var pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
     return pt.matrixTransform(svg.getScreenCTM().inverse());
   }
-  var R=9, LOOK=2, OFF=20, OFFN=6, offCount=0;
+  var R=9, LOOK=2, OFF=20, OFFN=6, offCount=0, armed=false;   // armed: the finger went down on the stroke's start
   function strokeEnd(k){ return k+1<starts.length?starts[k+1]:samples.length; }
   function restartStroke(){
     // back to the start of the stroke she is on; strokes already finished stay finished
-    next=starts[strokeOf(next)]; offCount=0; pts=[]; trail.setAttribute('points','');
+    next=starts[strokeOf(next)]; offCount=0; armed=false; pts=[]; trail.setAttribute('points','');
     dot.classList.add('pulse'); markNext();
   }
   function offPath(p){
@@ -394,6 +394,7 @@ function traceGlyph(strokes,opts,done){
     var p=toSvg(e);
     pts.push(Math.round(p.x)+','+Math.round(p.y));
     trail.setAttribute('points',pts.join(' '));
+    if(!armed){ last=p; return; }   // a stroke only counts when it starts at its start dot
     var before=next;
     // a fast finger skips across the screen: check the points in between too
     if(last){
@@ -413,6 +414,8 @@ function traceGlyph(strokes,opts,done){
   function onDown(e){
     if(finished) return;
     drawing=true; pts=[]; last=null; offCount=0;
+    var p0=toSvg(e), s0=samples[next], ddx=p0.x-s0.x, ddy=p0.y-s0.y;
+    armed=Math.sqrt(ddx*ddx+ddy*ddy)<=2*R;
     dot.classList.remove('pulse');
     try{ svg.setPointerCapture(e.pointerId); }catch(err){}
     onMove(e);
@@ -526,3 +529,6 @@ window.__afTraceTest=function(up,ch){
 };
 window.AF_DEBUG.state=function(){ return {screen:curScreen,answer:round.answer,locked:round.locked,index:round.index,stage:round.stage&&round.stage.id,trace:!!(traceState&&!traceState.finished&&document.querySelector('#stage .trace-svg'))}; };
 window.AF_DEBUG.stages=function(){ return STAGES.map(function(s){return s.id;}); };
+window.AF_DEBUG.progress=function(){ return JSON.parse(JSON.stringify(progress)); };
+window.AF_DEBUG.log=function(){ return answerLog.slice(); };
+window.AF_DEBUG.setLevel=function(id,v){ progress.levels=progress.levels||{}; progress.levels[id]=v; saveProgress(); };
