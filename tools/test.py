@@ -24,14 +24,14 @@ async def play_stage(pg,sid,shots=None):
             if shots and not took: await pg.screenshot(path=SH+shots+'_trace.png'); took=True
             await trace_full(pg); await pg.wait_for_timeout(1300); continue
         nb=await pg.query_selector('#choices .nextbtn')
-        if nb: await nb.click(); await pg.wait_for_timeout(700); continue
+        if nb: await nb.evaluate("e=>e.click()"); await pg.wait_for_timeout(700); continue
         if not s['locked'] and s['answer'] is not None:
             if shots and not took: await pg.screenshot(path=SH+shots+'.png'); took=True
             if random.random()<0.25:
                 w=await pg.query_selector(f'#choices .choice:not([data-key="{s["answer"]}"]):not([disabled])')
-                if w: await w.click(); await pg.wait_for_timeout(500)
+                if w: await w.evaluate("e=>e.click()"); await pg.wait_for_timeout(500)
             r=await pg.query_selector(f'#choices .choice[data-key="{s["answer"]}"]')
-            if r: await r.click(); await pg.wait_for_timeout(900); continue
+            if r: await r.evaluate("e=>e.click()"); await pg.wait_for_timeout(900); continue
         await pg.wait_for_timeout(400)
     return False
 async def main():
