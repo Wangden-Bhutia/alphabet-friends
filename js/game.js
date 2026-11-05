@@ -643,6 +643,13 @@ function ear(onTap){
   return b;
 }
 
+/* how many answer buttons: 3, or 2 / 4 when the stage has stepped down / up (warm-up and Big mix stay at 3) */
+function choiceCount(){
+  var id=round.stage&&round.stage.id;
+  if(!id||id==='warmup'||id==='mix') return 3;
+  var L=(progress.levels&&progress.levels[id])||0;
+  return 3+Math.max(-1,Math.min(1,L));
+}
 /* ---------- 1. meet the letter ---------- */
 function mkMeet(list){
   var o=drawFrom(list,'meet');
@@ -696,7 +703,7 @@ function mkMatch(list){
       // tricky look-alikes make good distractors once she is going well
       var maxI=Math.max.apply(null,list.map(function(x){return x.i;}));
       var pool=list.concat(LET.filter(function(x){ return 'bdpqnumw'.indexOf(x.l)>=0&&x.i<=maxI; }));
-      var opts=[o].concat(others(o,pool,2,true));
+      var opts=[o].concat(others(o,pool,choiceCount()-1,true));
       askItems(letterItems(opts,toLower,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     },
     afterCorrect:function(done){ speak(T.upLow(o)); done(); },
@@ -716,7 +723,7 @@ function mkSounds(list,kind){
     q.promptSpeech=T.whichSays(o);
     q.build=function(el){
       var r=cardRow(); r.appendChild(ear(function(){ speak(T.snd(o)); })); el.appendChild(r);
-      askItems(letterItems([o].concat(others(o,list,2,false)),false,NEUTRAL),String(o.i),correctNow,'ltrchoice');
+      askItems(letterItems([o].concat(others(o,list,choiceCount()-1,false)),false,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     };
     q.afterCorrect=function(done){ speak(T.says(o)); done(); };
   }else if(kind==='starts'){
@@ -724,7 +731,7 @@ function mkSounds(list,kind){
     q.promptSpeech=T.startsWith(o);
     q.build=function(el){
       var r=cardRow(); r.appendChild(picCard(o,true)); el.appendChild(r);
-      askItems(letterItems([o].concat(others(o,list,2,false)),false,NEUTRAL),String(o.i),correctNow,'ltrchoice');
+      askItems(letterItems([o].concat(others(o,list,choiceCount()-1,false)),false,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     };
     q.afterCorrect=function(done){ speak(T.meet(o).replace(/^This is [A-Z]\. /,'')); done(); };
   }else{
