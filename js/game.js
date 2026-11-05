@@ -670,9 +670,9 @@ function mkTraceLetter(list){
     promptHTML:'Trace <b>'+o.U+'</b>', promptSpeech:'',
     build:function(){
       traceGlyph(AF.TRACE.up[o.U],{html:'Trace big <b>'+o.U+'</b>',speech:T.traceBig(o),color:lcol(o.i)},function(ok1){
-        if(!ok1) round.firstTry=false;
+        if(!ok1){ skipNow(); return; }   // Skip: no reward, no praise
         traceGlyph(AF.TRACE.lo[o.l],{html:'Now little <b>'+o.l+'</b>',speech:T.traceSmall(o),color:lcol(o.i)},function(ok2){
-          if(!ok2) round.firstTry=false;
+          if(!ok2){ skipNow(); return; }
           var st=$('stage'); st.innerHTML='';
           var r=cardRow(); r.appendChild(letterFriend(o.U,lcol(o.i))); r.appendChild(letterFriend(o.l,lcol(o.i+3)));
           st.appendChild(r);
@@ -1261,6 +1261,21 @@ function correctNow(){
     if(q&&q.afterCorrect) q.afterCorrect(finishRound);
     else finishRound();
   },420);
+}
+
+/* a skipped trace: move on quietly, with no stars, praise, sounds or answer log */
+function skipNow(){
+  if(round.locked) return;
+  round.locked=true;
+  round.index++;
+  updateDots();
+  if(round.index<(round.total||ROUNDS)&&round.stage.id!=='warmup'){
+    progress.carry=progress.carry||{};
+    progress.carry[round.stage.id]={index:round.index,wins:round.wins,zeroUsed:round.zeroUsed};
+  }
+  saveProgress();
+  addPlayTime();
+  finishRound();
 }
 
 function finishRound(){

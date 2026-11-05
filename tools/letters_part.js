@@ -110,9 +110,9 @@ function mkTraceLetter(list){
     promptHTML:'Trace <b>'+o.U+'</b>', promptSpeech:'',
     build:function(){
       traceGlyph(AF.TRACE.up[o.U],{html:'Trace big <b>'+o.U+'</b>',speech:T.traceBig(o),color:lcol(o.i)},function(ok1){
-        if(!ok1) round.firstTry=false;
+        if(!ok1){ skipNow(); return; }   // Skip: no reward, no praise
         traceGlyph(AF.TRACE.lo[o.l],{html:'Now little <b>'+o.l+'</b>',speech:T.traceSmall(o),color:lcol(o.i)},function(ok2){
-          if(!ok2) round.firstTry=false;
+          if(!ok2){ skipNow(); return; }
           var st=$('stage'); st.innerHTML='';
           var r=cardRow(); r.appendChild(letterFriend(o.U,lcol(o.i))); r.appendChild(letterFriend(o.l,lcol(o.i+3)));
           st.appendChild(r);
