@@ -1,4 +1,6 @@
 from PIL import Image, ImageDraw, ImageFont
+from pathlib import Path
+ROOT=str(Path(__file__).resolve().parent.parent); OUTDIR=ROOT+'/tools/out/'
 F='/tmp/baloo.ttf'
 def make(size, maskable=False, out=None):
     S=1024
@@ -36,6 +38,6 @@ def make(size, maskable=False, out=None):
     pts=[(sx+(r if i%2==0 else r*0.45)*math.cos(math.pi/2+i*math.pi/5)*-1, sy-(r if i%2==0 else r*0.45)*math.sin(math.pi/2+i*math.pi/5)) for i in range(10)]
     d.polygon(pts,fill=(25,179,166))
     im.resize((size,size),Image.LANCZOS).save(out)
-p='/workspace/af/assets/icons/'
+p=ROOT+'/assets/icons/'
 make(192,out=p+'icon-192.png'); make(512,out=p+'icon-512.png')
 make(512,True,p+'icon-maskable-512.png'); make(180,True,p+'apple-touch-icon.png')

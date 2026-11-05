@@ -1,7 +1,10 @@
 import asyncio, random, json, os, sys
 from playwright.async_api import async_playwright
+from pathlib import Path
+ROOT=str(Path(__file__).resolve().parent.parent); OUTDIR=ROOT+'/tools/out/'
+import os as _os; _os.makedirs(OUTDIR,exist_ok=True)
 BASE=sys.argv[1] if len(sys.argv)>1 else 'http://localhost:8090/'
-SH='/workspace/af_shots/'
+SH=OUTDIR
 random.seed(3)
 async def hold(pg,sel,ms=2300):
     box=await (await pg.query_selector(sel)).bounding_box()

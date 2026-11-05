@@ -11,7 +11,9 @@ Play: https://wangden-bhutia.github.io/alphabet-friends/
 - Installable PWA that works offline; all voice clips are pre-recorded and precached.
 
 ## Tools
-- `tools/build.py` assembles `js/game.js` from the Number Friends engine plus `tools/letters_part.js`.
+- `js/game.js` is now edited directly and is the source of truth. `tools/letters_part.js` mirrors the letter-game part of it.
+- `tools/build.py` was used once to assemble `js/game.js` from the Number Friends engine plus `tools/letters_part.js`; it needs that engine (`/workspace/nf/site/js/game.js`), which is not in this repo, and running it would overwrite later edits. `tools/index_edit.py` has the same dependency.
+- Tools find the repo from their own location; test output and screenshots go to `tools/out/` (git-ignored).
 - `tools/phrases.js` lists every spoken segment; `tools/gen.py` records them (edge-tts en-US-JennyNeural,
   -8% rate, +4 Hz pitch, silence trimmed). Phonic sounds are spliced in as separate clips: vowels and
   f/s/v/z/x are cut from the picture word itself, other consonants are short "buh"-style syllables.

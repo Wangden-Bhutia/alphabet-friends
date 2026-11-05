@@ -1,3 +1,5 @@
+from pathlib import Path
+ROOT=str(Path(__file__).resolve().parent.parent); OUTDIR=ROOT+'/tools/out/'
 s=open('/workspace/nf/site/index.html').read()
 def rep(a,b):
     global s
@@ -53,7 +55,7 @@ rep('''      <div class="panel">
       <div class="panel">
         <h3>Start over</h3>''')
 rep('<script src="js/game.js"></script>','<script src="js/content.js"></script>\n<script src="js/game.js"></script>')
-open('/workspace/af/index.html','w').write(s)
+open(ROOT+'/index.html','w').write(s)
 p=open('/workspace/nf/site/js/pwa.js').read().replace('Find Number Friends on your home screen','Find Alphabet Friends on your home screen')
 p=p.replace("'.choice,.bigbtn,.pillbtn,.minibtn,.installbtn,.playbtn'","'.choice,.bigbtn,.pillbtn,.minibtn,.installbtn,.playbtn,.songtile,.earbtn'")
-open('/workspace/af/js/pwa.js','w').write(p)
+open(ROOT+'/js/pwa.js','w').write(p)

@@ -1,9 +1,11 @@
+from pathlib import Path
+ROOT=str(Path(__file__).resolve().parent.parent); OUTDIR=ROOT+'/tools/out/'
 # Generate the voice: en-US-JennyNeural, -8% rate, +4Hz pitch, silence trimmed, mono 24 kHz mp3.
 # Phonic sounds are spliced in as their own clips so the sentence never spells them out:
 #   vowels and f/s/v/z/x are cut from the start (or end) of the picture word itself,
 #   the other consonants are short "buh"-style syllables.
 import asyncio, json, os, subprocess, hashlib, numpy as np, edge_tts
-ROOT='/workspace/af'; OUT=ROOT+'/assets/audio'; RAW='/tmp/afraw'
+OUT=ROOT+'/assets/audio'; RAW='/tmp/afraw'
 os.makedirs(OUT,exist_ok=True); os.makedirs(RAW,exist_ok=True)
 VOICE='en-US-JennyNeural'; SR=24000
 segs=json.load(open(ROOT+'/tools/segs.json'))
