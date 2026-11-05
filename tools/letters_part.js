@@ -72,10 +72,10 @@ function askItems(items,ansKey,onRight,cls){
     else wrongNow(btn);
   },cls);
 }
-function letterItems(list,lower){ return list.map(function(x){ return {key:String(x.i),html:'<span class="ltr" style="color:'+lcol(x.i)+'">'+(lower?x.l:x.U)+'</span>',label:x.U}; }); }
+function letterItems(list,lower,color){ return list.map(function(x){ return {key:String(x.i),html:'<span class="ltr" style="color:'+(color||lcol(x.i))+'">'+(lower?x.l:x.U)+'</span>',label:x.U}; }); }
 function picItems(list){ return list.map(function(x){ return {key:String(x.i),html:picImg(x.pic),label:x.word}; }); }
 function cardRow(){ var r=document.createElement('div'); r.className='cardrow'; return r; }
-function picCard(o){ var d=document.createElement('div'); d.className='piccard pop'; d.innerHTML=picImg(o.pic)+'<span class="pw">'+o.word+'</span>'; return d; }
+function picCard(o,noWord){ var d=document.createElement('div'); d.className='piccard pop'; d.innerHTML=picImg(o.pic)+(noWord?'':'<span class="pw">'+o.word+'</span>'); return d; }
 function ear(onTap){
   var b=document.createElement('button'); b.className='earbtn pop'; b.setAttribute('aria-label','Hear it again');
   b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/><path d="M18.5 5.5a9 9 0 010 13"/></svg>';
@@ -93,12 +93,12 @@ function mkMeet(list){
       var r=cardRow();
       var f=letterFriend(o.U+o.l,lcol(o.i)); f.classList.add('tapable');
       f.addEventListener('click',function(){ popSound(); f.classList.remove('bump'); void f.offsetWidth; f.classList.add('bump'); speak(T.says(o)); });
-      r.appendChild(f); r.appendChild(picCard(o));
-      el.appendChild(r);
+      r.appendChild(f);
+      el.appendChild(r); q.row=r;
       var opts=[o].concat(others(o,LET.filter(function(x){return x.pic!==o.pic;}),2,true));
       askItems(picItems(opts),String(o.i),correctNow,'picchoice');
     },
-    afterCorrect:function(done){ speak(T.word(o)); speak(T.says(o)); done(); },
+    afterCorrect:function(done){ if(q.row) q.row.appendChild(picCard(o)); speak(T.word(o)); speak(T.says(o)); done(); },
     help:hintAnswer
   };
   return q;
@@ -129,14 +129,15 @@ function mkMatch(list){
   var o=drawFrom(list,'match');
   var toLower=Math.random()<0.6;
   var q={sig:'match'+o.i+toLower, nums:[o.i], maxN:1, cols:1,
-    promptHTML:toLower?('Find little <b>'+o.l+'</b>'):('Find big <b>'+o.U+'</b>'),
+    promptHTML:toLower?'Find the little one':'Find the big one',
     promptSpeech:toLower?T.findSmall(o):T.findBig(o),
     build:function(el){
       var r=cardRow(); r.appendChild(letterFriend(toLower?o.U:o.l,lcol(o.i))); el.appendChild(r);
       // tricky look-alikes make good distractors once she is going well
-      var pool=list.concat(LET.filter(function(x){ return 'bdpqnumw'.indexOf(x.l)>=0; }));
+      var maxI=Math.max.apply(null,list.map(function(x){return x.i;}));
+      var pool=list.concat(LET.filter(function(x){ return 'bdpqnumw'.indexOf(x.l)>=0&&x.i<=maxI; }));
       var opts=[o].concat(others(o,pool,2,true));
-      askItems(letterItems(opts,toLower),String(o.i),correctNow,'ltrchoice');
+      askItems(letterItems(opts,toLower,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     },
     afterCorrect:function(done){ speak(T.upLow(o)); done(); },
     help:hintAnswer
@@ -151,19 +152,19 @@ function mkSounds(list,kind){
   var o=drawFrom(kind==='says'?list:noX,'snd'+kind);
   var q={sig:'snd'+kind+o.i, nums:[o.i], maxN:1, cols:1, help:hintAnswer};
   if(kind==='says'){
-    q.promptHTML='Which letter says <b>/'+o.show+'/</b>?';
+    q.promptHTML='Which letter says this?';
     q.promptSpeech=T.whichSays(o);
     q.build=function(el){
       var r=cardRow(); r.appendChild(ear(function(){ speak(T.snd(o)); })); el.appendChild(r);
-      askItems(letterItems([o].concat(others(o,list,2,false))),String(o.i),correctNow,'ltrchoice');
+      askItems(letterItems([o].concat(others(o,list,2,false)),false,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     };
     q.afterCorrect=function(done){ speak(T.says(o)); done(); };
   }else if(kind==='starts'){
-    q.promptHTML='<b>'+o.word+'</b> starts with…';
+    q.promptHTML='It starts with…';
     q.promptSpeech=T.startsWith(o);
     q.build=function(el){
-      var r=cardRow(); r.appendChild(picCard(o)); el.appendChild(r);
-      askItems(letterItems([o].concat(others(o,list,2,false))),String(o.i),correctNow,'ltrchoice');
+      var r=cardRow(); r.appendChild(picCard(o,true)); el.appendChild(r);
+      askItems(letterItems([o].concat(others(o,list,2,false)),false,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     };
     q.afterCorrect=function(done){ speak(T.meet(o).replace(/^This is [A-Z]\. /,'')); done(); };
   }else{
@@ -197,7 +198,7 @@ function mkOrder(maxI){
         r.appendChild(c);
       });
       el.appendChild(r);
-      askItems(letterItems([o].concat(others(o,LET.slice(Math.max(0,s-2),s+6).filter(function(x){return seq.indexOf(x)<0;}),2,true))),String(o.i),correctNow,'ltrchoice');
+      askItems(letterItems([o].concat(others(o,LET.slice(Math.max(0,s-2),s+6).filter(function(x){return seq.indexOf(x)<0;}),2,true)),false,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     };
     q.afterCorrect=function(done){
       q.hole.textContent=o.U; q.hole.classList.remove('hole'); q.hole.style.color=lcol(o.i);
@@ -215,7 +216,7 @@ function mkOrder(maxI){
       c1.textContent=base.U; c1.style.color=lcol(base.i);
       if(after){ r.appendChild(c1); r.appendChild(c2); } else { r.appendChild(c2); r.appendChild(c1); }
       el.appendChild(r);
-      askItems(letterItems([ans].concat(others(ans,LET.slice(Math.max(0,a-3),a+4).filter(function(x){return x!==base;}),2,true))),String(ans.i),correctNow,'ltrchoice');
+      askItems(letterItems([ans].concat(others(ans,LET.slice(Math.max(0,a-3),a+4).filter(function(x){return x!==base;}),2,true)),false,NEUTRAL),String(ans.i),correctNow,'ltrchoice');
     };
     q.afterCorrect=function(done){
       q.hole.textContent=ans.U; q.hole.classList.remove('hole'); q.hole.style.color=lcol(ans.i);
