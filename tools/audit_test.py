@@ -117,6 +117,8 @@ async def main():
         small.append(('map',await pg.evaluate(SMALL_JS)))
         if 'play' in PARTS:
             stages=await pg.evaluate("AF_DEBUG.stages()")
+            sl=os.environ.get('AUDIT_SLICE')   # e.g. 0:15 to play part of the stage list
+            if sl: i0,i1=(int(x) if x else None for x in sl.split(':')); stages=stages[i0:i1]
             played={}
             for sid in stages:
                 played[sid]=await play_stage(pg,sid,rng,probe)
