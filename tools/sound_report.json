@@ -1,0 +1,112 @@
+{
+ "ah": {
+  "from": "89c2a649876fbf36.wav",
+  "ms": 188,
+  "zcr": 0.082
+ },
+ "eh": {
+  "from": "19b20ae9379b02d3.wav",
+  "ms": 250,
+  "zcr": 0.054
+ },
+ "ih": {
+  "from": "801f9477697abd1b.wav",
+  "ms": 242,
+  "zcr": 0.031
+ },
+ "aw": {
+  "from": "6a416f9d12cf1b5e.wav",
+  "ms": 155,
+  "zcr": 0.068
+ },
+ "uh": {
+  "from": "7e55e059d016a3d5.wav",
+  "ms": 229,
+  "zcr": 0.042
+ },
+ "fff": {
+  "from": "955dc4529fb06522.wav",
+  "ms": 233,
+  "zcr": 0.248
+ },
+ "sss": {
+  "from": "7653679b8187dbcd.wav",
+  "ms": 214,
+  "zcr": 0.687
+ },
+ "zzz": {
+  "from": "a60dec3fc155684d.wav",
+  "ms": 237,
+  "zcr": 0.317
+ },
+ "vvv": {
+  "from": "2f8caafdb77b8c51.wav",
+  "ms": 240,
+  "zcr": 0.059
+ },
+ "ks": {
+  "from": "7edbaa606e703c78.wav",
+  "ms": 231,
+  "zcr": 0.586
+ },
+ "buh": {
+  "tts": "buh",
+  "ms": 384
+ },
+ "kuh": {
+  "tts": "kuh",
+  "ms": 389
+ },
+ "duh": {
+  "tts": "duh",
+  "ms": 316
+ },
+ "guh": {
+  "tts": "guhh",
+  "ms": 319
+ },
+ "huh": {
+  "tts": "huh",
+  "ms": 276
+ },
+ "juh": {
+  "tts": "juh",
+  "ms": 367
+ },
+ "kwuh": {
+  "tts": "kwuh",
+  "ms": 288
+ },
+ "luh": {
+  "tts": "luh",
+  "ms": 427
+ },
+ "muh": {
+  "tts": "muh",
+  "ms": 317
+ },
+ "nuh": {
+  "tts": "nuh",
+  "ms": 340
+ },
+ "puh": {
+  "tts": "puh",
+  "ms": 379
+ },
+ "ruh": {
+  "tts": "ruh",
+  "ms": 427
+ },
+ "tuh": {
+  "tts": "tuh",
+  "ms": 320
+ },
+ "wuh": {
+  "tts": "wuh",
+  "ms": 278
+ },
+ "yuh": {
+  "tts": "yuh",
+  "ms": 286
+ }
+}
