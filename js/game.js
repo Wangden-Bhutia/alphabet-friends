@@ -5,7 +5,6 @@
 /* ================= constants ================= */
 var PALETTE=['#e8453c','#f28c1e','#f5c518','#5cb85c','#29a3e0','#3f51b5','#8e5bd0','#ec4a8f','#c2703d','#12a5a5'];
 var NEUTRAL='#3b3f6b';   // one colour for every letter choice, so colour never gives the answer away
-var WORDS=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];
 var PRAISE=['Yes!','Well done!','Great listening!','That is right!','Super!','You did it!','Brilliant!','Lovely!'];
 var PERSIST=['You kept trying!','You worked it out!','Good thinking!','You did not give up!'];
 var NUDGE=['Almost. Try again.','Listen again.','Have another look.','Nearly. Try once more.'];
@@ -16,7 +15,6 @@ var KEY='af1';
 function $(id){return document.getElementById(id);}
 function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
 function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
-function colorOf(n){return PALETTE[(n-1)%10];}
 var timers=[];
 window.AF_DEBUG={};
 function later(fn,ms){var id=setTimeout(fn,ms);timers.push(id);return id;}
@@ -485,19 +483,6 @@ function addPlayTime(){
   while(keys.length>14){ delete progress.time[keys.shift()]; }
   saveProgress();
 }
-/* ---- which numbers deserve another go ---- */
-function weakNumbers(lo,hi){
-  var score={};
-  answerLog.slice(-40).forEach(function(e){
-    (e.n||[]).forEach(function(n){
-      if(n<lo||n>hi) return;
-      score[n]=(score[n]||0)+(e.ok?-0.6:1);
-    });
-  });
-  return Object.keys(score).map(Number)
-    .filter(function(n){ return score[n]>0.4; })
-    .sort(function(a,b){ return score[b]-score[a]; });
-}
 function totalStars(){var s=0;for(var k in progress.stars) s+=progress.stars[k]||0;return s;}
 /* ---------------- the star jar ---------------- */
 var jarSeq=0;
@@ -546,7 +531,6 @@ function jarFull(){
     {duration:750,easing:'ease-out'});
 }
 
-function popIn(){}
 function floorEl(){var f=document.createElement('div');f.className='floor';return f;}
 
 function fitStage(el,maxN,cols,reserve){
@@ -1173,7 +1157,7 @@ function playReward(){
 }
 
 /* ================= round engine ================= */
-var round={stage:null,index:0,locked:true,wins:0,mistakes:0,firstTry:true,q:null,answer:null,zeroUsed:false};
+var round={stage:null,index:0,locked:true,wins:0,mistakes:0,firstTry:true,q:null,answer:null};
 
 function startStage(id,fromIndex,stageObj){
   clearTimers();
@@ -1181,10 +1165,10 @@ function startStage(id,fromIndex,stageObj){
   var st=stageObj||stageById(id);
   if(!st) return;
   var carry=(fromIndex&&progress.carry)?(progress.carry[id]||null):null;
+  if(!fromIndex&&progress.carry&&progress.carry[id]){ delete progress.carry[id]; saveProgress(); }   // a fresh start forgets the old place
   round={stage:st,index:fromIndex||0,total:st.total||ROUNDS,locked:true,
          wins:carry?(carry.wins||0):0,
          mistakes:0,firstTry:true,q:null,answer:null,
-         zeroUsed:carry?!!carry.zeroUsed:false,
          idleReplayed:false,lastSig:null,bags:null};
   $('topTitle').textContent=st.short||st.title;
   setScreen('play');
@@ -1246,7 +1230,7 @@ function correctNow(){
   progress.rounds=(progress.rounds||0)+1;
   if(round.index<(round.total||ROUNDS)&&round.stage.id!=='warmup'){
     progress.carry=progress.carry||{};
-    progress.carry[round.stage.id]={index:round.index,wins:round.wins,zeroUsed:round.zeroUsed};
+    progress.carry[round.stage.id]={index:round.index,wins:round.wins};
   }
   saveProgress();
   addPlayTime();
@@ -1279,7 +1263,7 @@ function skipNow(){
   updateDots();
   if(round.index<(round.total||ROUNDS)&&round.stage.id!=='warmup'){
     progress.carry=progress.carry||{};
-    progress.carry[round.stage.id]={index:round.index,wins:round.wins,zeroUsed:round.zeroUsed};
+    progress.carry[round.stage.id]={index:round.index,wins:round.wins};
   }
   saveProgress();
   addPlayTime();
@@ -1304,7 +1288,6 @@ function wrongNow(btn,msg){
     btn.disabled=true;            // a wrong answer stays out of reach for this question
   }
   speak(msg||NUDGE[randInt(0,NUDGE.length-1)],{rate:0.92});
-  if(round.q&&round.q.onWrong) round.q.onWrong(round.mistakes);
   if(round.mistakes===2&&round.q.help) later(function(){round.q.help();},500);
 }
 
@@ -1417,10 +1400,6 @@ function listOf(a){
   if(!a.length) return '';
   if(a.length===1) return a[0];
   return a.slice(0,-1).join(', ')+' and '+a[a.length-1];
-}
-function jarText(){
-  var pts=progress.points||0, whole=Math.floor(pts);
-  return (WORDS[whole]||String(whole))+(pts%1?' and a half':'');
 }
 function speechBusy(){ return speaking||sq.length>0; }
 /* Say the summary once the finish screen has finished talking. If she has
@@ -1921,7 +1900,6 @@ $('backBtn').addEventListener('click',function(){
   goMap();
 });
 $('sayBtn').addEventListener('click',function(){
-  if(curScreen==='song'){ singAlong(); return; }
   if(round.q&&round.q.replay){ speak(round.q.replay,{rate:0.9}); return; }
   if(round.promptSpeech) speak(round.promptSpeech);
 });
@@ -2014,8 +1992,7 @@ $('resetBtn').addEventListener('click',function(){
 
 window.addEventListener('resize',function(){
   if($('s-play').classList.contains('active')&&round.q){
-    if(round.q.fit) round.q.fit();
-    else fitStage($('stage'),round.q.maxN||10,round.q.cols||2);
+    fitStage($('stage'),round.q.maxN||10,round.q.cols||2);
   }
   if($('s-map').classList.contains('active')) renderHome();
 });
