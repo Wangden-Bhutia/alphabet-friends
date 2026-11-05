@@ -356,7 +356,18 @@ function traceGlyph(strokes,opts,done){
     var pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
     return pt.matrixTransform(svg.getScreenCTM().inverse());
   }
-  var R=12, LOOK=3;
+  var R=9, LOOK=2, OFF=20, OFFN=6, offCount=0;
+  function strokeEnd(k){ return k+1<starts.length?starts[k+1]:samples.length; }
+  function restartStroke(){
+    // back to the start of the stroke she is on; strokes already finished stay finished
+    next=starts[strokeOf(next)]; offCount=0; pts=[]; trail.setAttribute('points','');
+    dot.classList.add('pulse'); markNext();
+  }
+  function offPath(p){
+    var k=strokeOf(next), e=strokeEnd(k);
+    for(var j=starts[k];j<e;j++){ var dx=samples[j].x-p.x, dy=samples[j].y-p.y; if(dx*dx+dy*dy<=OFF*OFF) return false; }
+    return true;
+  }
   function advance(p){
     var adv=true;
     while(adv&&next<samples.length){
@@ -386,17 +397,26 @@ function traceGlyph(strokes,opts,done){
       if(strokeOf(next)!==strokeOf(before)&&next<samples.length) tone(1040,0.08,'sine',0.07);
       markNext();
     }
-    if(next>=samples.length) finish(true);
+    if(next>=samples.length){ finish(true); return; }
+    // wandering off the letter: after a few moves away from this stroke, start the stroke again
+    if(drawing&&offPath(p)){ if(++offCount>=OFFN) restartStroke(); }
+    else offCount=0;
   }
   function onDown(e){
     if(finished) return;
-    drawing=true; pts=[]; last=null;
+    drawing=true; pts=[]; last=null; offCount=0;
     dot.classList.remove('pulse');
     try{ svg.setPointerCapture(e.pointerId); }catch(err){}
     onMove(e);
     e.preventDefault();
   }
-  function onUp(){ drawing=false; last=null; if(!finished) dot.classList.add('pulse'); }
+  function onUp(){
+    drawing=false; last=null;
+    if(finished) return;
+    // lifting in the middle of a stroke means that stroke starts again
+    if(next>starts[strokeOf(next)]) restartStroke();
+    dot.classList.add('pulse');
+  }
   svg.addEventListener('pointerdown',onDown);
   svg.addEventListener('pointermove',function(e){ if(drawing) onMove(e); });
   svg.addEventListener('pointerup',onUp);
