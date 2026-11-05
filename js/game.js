@@ -799,7 +799,8 @@ function mkBlend(words){
   if(!bag||bag.i>=bag.list.length) bag=round.bags.cvc={list:shuffle(words.slice()),i:0};
   var c=bag.list[bag.i++];
   var letters=c.w.split('').map(function(ch){ return LET[ch.toUpperCase().charCodeAt(0)-65]; });
-  var q={sig:'cvc'+c.w, nums:letters.map(function(x){return x.i;}), maxN:1, cols:1, help:hintAnswer,
+  var q={sig:'cvc'+c.w, nums:[],   // a blended word does not feed the single-letter stats
+ maxN:1, cols:1, help:hintAnswer,
     promptHTML:'Say the sounds. Which picture?',
     promptSpeech:TC.blend(c),
     replay:TC.blend(c),
@@ -1249,7 +1250,7 @@ function correctNow(){
   }
   saveProgress();
   addPlayTime();
-  logAnswer(round.q&&round.q.nums,true);
+  logAnswer(round.q&&round.q.nums,firstTry);   // one entry per question: right first time or not
 
   yesSound();
   var praise;
@@ -1297,7 +1298,6 @@ function wrongNow(btn,msg){
   round.firstTry=false;
   round.mistakes++;
   addPlayTime();
-  logAnswer(round.q&&round.q.nums,false);
   noSound();
   if(btn&&!btn.disabled){
     btn.classList.add('wrong');
