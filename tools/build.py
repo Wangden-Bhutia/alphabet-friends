@@ -1,7 +1,9 @@
+from pathlib import Path
+ROOT=str(Path(__file__).resolve().parent.parent); OUTDIR=ROOT+'/tools/out/'
 # Assemble Alphabet Friends game.js from the Number Friends engine + the letters section.
 src=open('/workspace/nf/site/js/game.js').read().split('\n')
 def L(a,b): return '\n'.join(src[a-1:b])
-part=open('/workspace/af/tools/letters_part.js').read()
+part=open(ROOT+'/tools/letters_part.js').read()
 A=L(1,547); B=L(724,734); D=L(2201,2722); E=L(3022,3093); F=L(3189,3599)
 def rep(s,a,b,count=1):
     assert a in s, ('MISSING',a[:80])
@@ -112,5 +114,5 @@ F=rep(F,"  if(round.q&&round.q.replay){ speak(round.q.replay,{rate:0.9}); return
 out='\n'.join([A,"function popIn(){}",B,part,D,E,F])
 assert 'carrySub' in out
 out=out.replace("$('carrySub').textContent='You stopped at question '+(index+1)+' of '+ROUNDS+'.';","$('carrySub').textContent='You stopped at question '+(index+1)+' of '+(st.total||ROUNDS)+'.';")
-open('/workspace/af/js/game.js','w').write(out)
+open(ROOT+'/js/game.js','w').write(out)
 print(len(out.split('\n')))

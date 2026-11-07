@@ -4,8 +4,7 @@
 
 /* ================= constants ================= */
 var PALETTE=['#e8453c','#f28c1e','#f5c518','#5cb85c','#29a3e0','#3f51b5','#8e5bd0','#ec4a8f','#c2703d','#12a5a5'];
-var NEUTRAL='#8fa3b8';   // used wherever colour could otherwise give the answer away
-var WORDS=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];
+var NEUTRAL='#3b3f6b';   // one colour for every letter choice, so colour never gives the answer away
 var PRAISE=['Yes!','Well done!','Great listening!','That is right!','Super!','You did it!','Brilliant!','Lovely!'];
 var PERSIST=['You kept trying!','You worked it out!','Good thinking!','You did not give up!'];
 var NUDGE=['Almost. Try again.','Listen again.','Have another look.','Nearly. Try once more.'];
@@ -16,7 +15,6 @@ var KEY='af1';
 function $(id){return document.getElementById(id);}
 function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
 function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
-function colorOf(n){return PALETTE[(n-1)%10];}
 var timers=[];
 window.AF_DEBUG={};
 function later(fn,ms){var id=setTimeout(fn,ms);timers.push(id);return id;}
@@ -485,19 +483,6 @@ function addPlayTime(){
   while(keys.length>14){ delete progress.time[keys.shift()]; }
   saveProgress();
 }
-/* ---- which numbers deserve another go ---- */
-function weakNumbers(lo,hi){
-  var score={};
-  answerLog.slice(-40).forEach(function(e){
-    (e.n||[]).forEach(function(n){
-      if(n<lo||n>hi) return;
-      score[n]=(score[n]||0)+(e.ok?-0.6:1);
-    });
-  });
-  return Object.keys(score).map(Number)
-    .filter(function(n){ return score[n]>0.4; })
-    .sort(function(a,b){ return score[b]-score[a]; });
-}
 function totalStars(){var s=0;for(var k in progress.stars) s+=progress.stars[k]||0;return s;}
 /* ---------------- the star jar ---------------- */
 var jarSeq=0;
@@ -546,7 +531,6 @@ function jarFull(){
     {duration:750,easing:'ease-out'});
 }
 
-function popIn(){}
 function floorEl(){var f=document.createElement('div');f.className='floor';return f;}
 
 function fitStage(el,maxN,cols,reserve){
@@ -632,10 +616,10 @@ function askItems(items,ansKey,onRight,cls){
     else wrongNow(btn);
   },cls);
 }
-function letterItems(list,lower){ return list.map(function(x){ return {key:String(x.i),html:'<span class="ltr" style="color:'+lcol(x.i)+'">'+(lower?x.l:x.U)+'</span>',label:x.U}; }); }
+function letterItems(list,lower,color){ return list.map(function(x){ return {key:String(x.i),html:'<span class="ltr" style="color:'+(color||lcol(x.i))+'">'+(lower?x.l:x.U)+'</span>',label:x.U}; }); }
 function picItems(list){ return list.map(function(x){ return {key:String(x.i),html:picImg(x.pic),label:x.word}; }); }
 function cardRow(){ var r=document.createElement('div'); r.className='cardrow'; return r; }
-function picCard(o){ var d=document.createElement('div'); d.className='piccard pop'; d.innerHTML=picImg(o.pic)+'<span class="pw">'+o.word+'</span>'; return d; }
+function picCard(o,noWord){ var d=document.createElement('div'); d.className='piccard pop'; d.innerHTML=picImg(o.pic)+(noWord?'':'<span class="pw">'+o.word+'</span>'); return d; }
 function ear(onTap){
   var b=document.createElement('button'); b.className='earbtn pop'; b.setAttribute('aria-label','Hear it again');
   b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/><path d="M18.5 5.5a9 9 0 010 13"/></svg>';
@@ -643,6 +627,13 @@ function ear(onTap){
   return b;
 }
 
+/* how many answer buttons: 3, or 2 / 4 when the stage has stepped down / up (warm-up and Big mix stay at 3) */
+function choiceCount(){
+  var id=round.stage&&round.stage.id;
+  if(!id||id==='warmup'||id==='mix') return 3;
+  var L=(progress.levels&&progress.levels[id])||0;
+  return 3+Math.max(-1,Math.min(1,L));
+}
 /* ---------- 1. meet the letter ---------- */
 function mkMeet(list){
   var o=drawFrom(list,'meet');
@@ -653,12 +644,12 @@ function mkMeet(list){
       var r=cardRow();
       var f=letterFriend(o.U+o.l,lcol(o.i)); f.classList.add('tapable');
       f.addEventListener('click',function(){ popSound(); f.classList.remove('bump'); void f.offsetWidth; f.classList.add('bump'); speak(T.says(o)); });
-      r.appendChild(f); r.appendChild(picCard(o));
-      el.appendChild(r);
+      r.appendChild(f);
+      el.appendChild(r); q.row=r;
       var opts=[o].concat(others(o,LET.filter(function(x){return x.pic!==o.pic;}),2,true));
       askItems(picItems(opts),String(o.i),correctNow,'picchoice');
     },
-    afterCorrect:function(done){ speak(T.word(o)); speak(T.says(o)); done(); },
+    afterCorrect:function(done){ if(q.row) q.row.appendChild(picCard(o)); speak(T.word(o)); speak(T.says(o)); done(); },
     help:hintAnswer
   };
   return q;
@@ -670,9 +661,9 @@ function mkTraceLetter(list){
     promptHTML:'Trace <b>'+o.U+'</b>', promptSpeech:'',
     build:function(){
       traceGlyph(AF.TRACE.up[o.U],{html:'Trace big <b>'+o.U+'</b>',speech:T.traceBig(o),color:lcol(o.i)},function(ok1){
-        if(!ok1) round.firstTry=false;
+        if(!ok1){ skipNow(); return; }   // Skip: no reward, no praise
         traceGlyph(AF.TRACE.lo[o.l],{html:'Now little <b>'+o.l+'</b>',speech:T.traceSmall(o),color:lcol(o.i)},function(ok2){
-          if(!ok2) round.firstTry=false;
+          if(!ok2){ skipNow(); return; }
           var st=$('stage'); st.innerHTML='';
           var r=cardRow(); r.appendChild(letterFriend(o.U,lcol(o.i))); r.appendChild(letterFriend(o.l,lcol(o.i+3)));
           st.appendChild(r);
@@ -689,14 +680,15 @@ function mkMatch(list){
   var o=drawFrom(list,'match');
   var toLower=Math.random()<0.6;
   var q={sig:'match'+o.i+toLower, nums:[o.i], maxN:1, cols:1,
-    promptHTML:toLower?('Find little <b>'+o.l+'</b>'):('Find big <b>'+o.U+'</b>'),
+    promptHTML:toLower?'Find the little one':'Find the big one',
     promptSpeech:toLower?T.findSmall(o):T.findBig(o),
     build:function(el){
       var r=cardRow(); r.appendChild(letterFriend(toLower?o.U:o.l,lcol(o.i))); el.appendChild(r);
       // tricky look-alikes make good distractors once she is going well
-      var pool=list.concat(LET.filter(function(x){ return 'bdpqnumw'.indexOf(x.l)>=0; }));
-      var opts=[o].concat(others(o,pool,2,true));
-      askItems(letterItems(opts,toLower),String(o.i),correctNow,'ltrchoice');
+      var maxI=Math.max.apply(null,list.map(function(x){return x.i;}));
+      var pool=list.concat(LET.filter(function(x){ return 'bdpqnumw'.indexOf(x.l)>=0&&x.i<=maxI; }));
+      var opts=[o].concat(others(o,pool,choiceCount()-1,true));
+      askItems(letterItems(opts,toLower,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     },
     afterCorrect:function(done){ speak(T.upLow(o)); done(); },
     help:hintAnswer
@@ -711,19 +703,19 @@ function mkSounds(list,kind){
   var o=drawFrom(kind==='says'?list:noX,'snd'+kind);
   var q={sig:'snd'+kind+o.i, nums:[o.i], maxN:1, cols:1, help:hintAnswer};
   if(kind==='says'){
-    q.promptHTML='Which letter says <b>/'+o.show+'/</b>?';
+    q.promptHTML='Which letter says this?';
     q.promptSpeech=T.whichSays(o);
     q.build=function(el){
       var r=cardRow(); r.appendChild(ear(function(){ speak(T.snd(o)); })); el.appendChild(r);
-      askItems(letterItems([o].concat(others(o,list,2,false))),String(o.i),correctNow,'ltrchoice');
+      askItems(letterItems([o].concat(others(o,list,choiceCount()-1,false)),false,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     };
     q.afterCorrect=function(done){ speak(T.says(o)); done(); };
   }else if(kind==='starts'){
-    q.promptHTML='<b>'+o.word+'</b> starts with…';
+    q.promptHTML='It starts with…';
     q.promptSpeech=T.startsWith(o);
     q.build=function(el){
-      var r=cardRow(); r.appendChild(picCard(o)); el.appendChild(r);
-      askItems(letterItems([o].concat(others(o,list,2,false))),String(o.i),correctNow,'ltrchoice');
+      var r=cardRow(); r.appendChild(picCard(o,true)); el.appendChild(r);
+      askItems(letterItems([o].concat(others(o,list,choiceCount()-1,false)),false,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     };
     q.afterCorrect=function(done){ speak(T.meet(o).replace(/^This is [A-Z]\. /,'')); done(); };
   }else{
@@ -757,7 +749,7 @@ function mkOrder(maxI){
         r.appendChild(c);
       });
       el.appendChild(r);
-      askItems(letterItems([o].concat(others(o,LET.slice(Math.max(0,s-2),s+6).filter(function(x){return seq.indexOf(x)<0;}),2,true))),String(o.i),correctNow,'ltrchoice');
+      askItems(letterItems([o].concat(others(o,LET.slice(Math.max(0,s-2),s+6).filter(function(x){return seq.indexOf(x)<0;}),2,true)),false,NEUTRAL),String(o.i),correctNow,'ltrchoice');
     };
     q.afterCorrect=function(done){
       q.hole.textContent=o.U; q.hole.classList.remove('hole'); q.hole.style.color=lcol(o.i);
@@ -775,7 +767,7 @@ function mkOrder(maxI){
       c1.textContent=base.U; c1.style.color=lcol(base.i);
       if(after){ r.appendChild(c1); r.appendChild(c2); } else { r.appendChild(c2); r.appendChild(c1); }
       el.appendChild(r);
-      askItems(letterItems([ans].concat(others(ans,LET.slice(Math.max(0,a-3),a+4).filter(function(x){return x!==base;}),2,true))),String(ans.i),correctNow,'ltrchoice');
+      askItems(letterItems([ans].concat(others(ans,LET.slice(Math.max(0,a-3),a+4).filter(function(x){return x!==base;}),2,true)),false,NEUTRAL),String(ans.i),correctNow,'ltrchoice');
     };
     q.afterCorrect=function(done){
       q.hole.textContent=ans.U; q.hole.classList.remove('hole'); q.hole.style.color=lcol(ans.i);
@@ -791,7 +783,8 @@ function mkBlend(words){
   if(!bag||bag.i>=bag.list.length) bag=round.bags.cvc={list:shuffle(words.slice()),i:0};
   var c=bag.list[bag.i++];
   var letters=c.w.split('').map(function(ch){ return LET[ch.toUpperCase().charCodeAt(0)-65]; });
-  var q={sig:'cvc'+c.w, nums:letters.map(function(x){return x.i;}), maxN:1, cols:1, help:hintAnswer,
+  var q={sig:'cvc'+c.w, nums:[],   // a blended word does not feed the single-letter stats
+ maxN:1, cols:1, help:hintAnswer,
     promptHTML:'Say the sounds. Which picture?',
     promptSpeech:TC.blend(c),
     replay:TC.blend(c),
@@ -915,7 +908,18 @@ function traceGlyph(strokes,opts,done){
     var pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
     return pt.matrixTransform(svg.getScreenCTM().inverse());
   }
-  var R=12, LOOK=3;
+  var R=9, LOOK=2, OFF=20, OFFN=6, offCount=0, armed=false;   // armed: the finger went down on the stroke's start
+  function strokeEnd(k){ return k+1<starts.length?starts[k+1]:samples.length; }
+  function restartStroke(){
+    // back to the start of the stroke she is on; strokes already finished stay finished
+    next=starts[strokeOf(next)]; offCount=0; armed=false; pts=[]; trail.setAttribute('points','');
+    dot.classList.add('pulse'); markNext();
+  }
+  function offPath(p){
+    var k=strokeOf(next), e=strokeEnd(k);
+    for(var j=starts[k];j<e;j++){ var dx=samples[j].x-p.x, dy=samples[j].y-p.y; if(dx*dx+dy*dy<=OFF*OFF) return false; }
+    return true;
+  }
   function advance(p){
     var adv=true;
     while(adv&&next<samples.length){
@@ -934,6 +938,7 @@ function traceGlyph(strokes,opts,done){
     var p=toSvg(e);
     pts.push(Math.round(p.x)+','+Math.round(p.y));
     trail.setAttribute('points',pts.join(' '));
+    if(!armed){ last=p; return; }   // a stroke only counts when it starts at its start dot
     var before=next;
     // a fast finger skips across the screen: check the points in between too
     if(last){
@@ -945,17 +950,28 @@ function traceGlyph(strokes,opts,done){
       if(strokeOf(next)!==strokeOf(before)&&next<samples.length) tone(1040,0.08,'sine',0.07);
       markNext();
     }
-    if(next>=samples.length) finish(true);
+    if(next>=samples.length){ finish(true); return; }
+    // wandering off the letter: after a few moves away from this stroke, start the stroke again
+    if(drawing&&offPath(p)){ if(++offCount>=OFFN) restartStroke(); }
+    else offCount=0;
   }
   function onDown(e){
     if(finished) return;
-    drawing=true; pts=[]; last=null;
+    drawing=true; pts=[]; last=null; offCount=0;
+    var p0=toSvg(e), s0=samples[next], ddx=p0.x-s0.x, ddy=p0.y-s0.y;
+    armed=Math.sqrt(ddx*ddx+ddy*ddy)<=2*R;
     dot.classList.remove('pulse');
     try{ svg.setPointerCapture(e.pointerId); }catch(err){}
     onMove(e);
     e.preventDefault();
   }
-  function onUp(){ drawing=false; last=null; if(!finished) dot.classList.add('pulse'); }
+  function onUp(){
+    drawing=false; last=null;
+    if(finished) return;
+    // lifting in the middle of a stroke means that stroke starts again
+    if(next>starts[strokeOf(next)]) restartStroke();
+    dot.classList.add('pulse');
+  }
   svg.addEventListener('pointerdown',onDown);
   svg.addEventListener('pointermove',function(e){ if(drawing) onMove(e); });
   svg.addEventListener('pointerup',onUp);
@@ -1057,6 +1073,9 @@ window.__afTraceTest=function(up,ch){
 };
 window.AF_DEBUG.state=function(){ return {screen:curScreen,answer:round.answer,locked:round.locked,index:round.index,stage:round.stage&&round.stage.id,trace:!!(traceState&&!traceState.finished&&document.querySelector('#stage .trace-svg'))}; };
 window.AF_DEBUG.stages=function(){ return STAGES.map(function(s){return s.id;}); };
+window.AF_DEBUG.progress=function(){ return JSON.parse(JSON.stringify(progress)); };
+window.AF_DEBUG.log=function(){ return answerLog.slice(); };
+window.AF_DEBUG.setLevel=function(id,v){ progress.levels=progress.levels||{}; progress.levels[id]=v; saveProgress(); };
 
 /* ================= idle replay ================= */
 var idleTimer=null;
@@ -1144,7 +1163,7 @@ function playReward(){
 }
 
 /* ================= round engine ================= */
-var round={stage:null,index:0,locked:true,wins:0,mistakes:0,firstTry:true,q:null,answer:null,zeroUsed:false};
+var round={stage:null,index:0,locked:true,wins:0,mistakes:0,firstTry:true,q:null,answer:null};
 
 function startStage(id,fromIndex,stageObj){
   clearTimers();
@@ -1152,10 +1171,10 @@ function startStage(id,fromIndex,stageObj){
   var st=stageObj||stageById(id);
   if(!st) return;
   var carry=(fromIndex&&progress.carry)?(progress.carry[id]||null):null;
+  if(!fromIndex&&progress.carry&&progress.carry[id]){ delete progress.carry[id]; saveProgress(); }   // a fresh start forgets the old place
   round={stage:st,index:fromIndex||0,total:st.total||ROUNDS,locked:true,
          wins:carry?(carry.wins||0):0,
          mistakes:0,firstTry:true,q:null,answer:null,
-         zeroUsed:carry?!!carry.zeroUsed:false,
          idleReplayed:false,lastSig:null,bags:null};
   $('topTitle').textContent=st.short||st.title;
   setScreen('play');
@@ -1217,11 +1236,11 @@ function correctNow(){
   progress.rounds=(progress.rounds||0)+1;
   if(round.index<(round.total||ROUNDS)&&round.stage.id!=='warmup'){
     progress.carry=progress.carry||{};
-    progress.carry[round.stage.id]={index:round.index,wins:round.wins,zeroUsed:round.zeroUsed};
+    progress.carry[round.stage.id]={index:round.index,wins:round.wins};
   }
   saveProgress();
   addPlayTime();
-  logAnswer(round.q&&round.q.nums,true);
+  logAnswer(round.q&&round.q.nums,firstTry);   // one entry per question: right first time or not
 
   yesSound();
   var praise;
@@ -1242,6 +1261,21 @@ function correctNow(){
   },420);
 }
 
+/* a skipped trace: move on quietly, with no stars, praise, sounds or answer log */
+function skipNow(){
+  if(round.locked) return;
+  round.locked=true;
+  round.index++;
+  updateDots();
+  if(round.index<(round.total||ROUNDS)&&round.stage.id!=='warmup'){
+    progress.carry=progress.carry||{};
+    progress.carry[round.stage.id]={index:round.index,wins:round.wins};
+  }
+  saveProgress();
+  addPlayTime();
+  finishRound();
+}
+
 function finishRound(){
   var total=round.total||ROUNDS;
   if(round.index>=total){ finishStage(); return; }
@@ -1254,14 +1288,12 @@ function wrongNow(btn,msg){
   round.firstTry=false;
   round.mistakes++;
   addPlayTime();
-  logAnswer(round.q&&round.q.nums,false);
   noSound();
   if(btn&&!btn.disabled){
     btn.classList.add('wrong');
     btn.disabled=true;            // a wrong answer stays out of reach for this question
   }
   speak(msg||NUDGE[randInt(0,NUDGE.length-1)],{rate:0.92});
-  if(round.q&&round.q.onWrong) round.q.onWrong(round.mistakes);
   if(round.mistakes===2&&round.q.help) later(function(){round.q.help();},500);
 }
 
@@ -1374,10 +1406,6 @@ function listOf(a){
   if(!a.length) return '';
   if(a.length===1) return a[0];
   return a.slice(0,-1).join(', ')+' and '+a[a.length-1];
-}
-function jarText(){
-  var pts=progress.points||0, whole=Math.floor(pts);
-  return (WORDS[whole]||String(whole))+(pts%1?' and a half':'');
 }
 function speechBusy(){ return speaking||sq.length>0; }
 /* Say the summary once the finish screen has finished talking. If she has
@@ -1878,7 +1906,6 @@ $('backBtn').addEventListener('click',function(){
   goMap();
 });
 $('sayBtn').addEventListener('click',function(){
-  if(curScreen==='song'){ singAlong(); return; }
   if(round.q&&round.q.replay){ speak(round.q.replay,{rate:0.9}); return; }
   if(round.promptSpeech) speak(round.promptSpeech);
 });
@@ -1971,8 +1998,7 @@ $('resetBtn').addEventListener('click',function(){
 
 window.addEventListener('resize',function(){
   if($('s-play').classList.contains('active')&&round.q){
-    if(round.q.fit) round.q.fit();
-    else fitStage($('stage'),round.q.maxN||10,round.q.cols||2);
+    fitStage($('stage'),round.q.maxN||10,round.q.cols||2);
   }
   if($('s-map').classList.contains('active')) renderHome();
 });

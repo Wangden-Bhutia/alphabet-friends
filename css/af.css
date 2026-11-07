@@ -105,3 +105,4 @@ body{background:
 .stage .floor{display:none}
 .trace-svg .guide{stroke:#dccff9;stroke-width:10}
 .icon-btn{width:56px;height:56px}
+@media (max-width:399px){#topTitle{visibility:hidden}}
